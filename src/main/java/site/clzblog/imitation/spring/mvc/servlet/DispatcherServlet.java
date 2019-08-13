@@ -2,17 +2,37 @@ package site.clzblog.imitation.spring.mvc.servlet;
 
 import site.clzblog.imitation.spring.mvc.view.ModelAndView;
 import site.clzblog.imitation.spring.mvc.web.RequestMappingHandlerMapping;
+import site.clzblog.imitation.spring.mvc.web.controller.Controller;
+import site.clzblog.imitation.spring.mvc.web.controller.HttpController;
 import site.clzblog.imitation.spring.mvc.web.handler.HandlerExecutionChain;
 import site.clzblog.imitation.spring.mvc.web.handler.HandlerMethod;
+import site.clzblog.imitation.spring.mvc.web.handler.adapter.AnnotationHandlerAdapter;
+import site.clzblog.imitation.spring.mvc.web.handler.adapter.HandlerAdapter;
+import site.clzblog.imitation.spring.mvc.web.handler.adapter.HttpRequestHandlerAdapter;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DispatcherServlet extends FrameworkServlet {
+    private List<HandlerAdapter> handlerAdapters;
+
     private RequestMappingHandlerMapping handlerMapping;
 
     public DispatcherServlet() {
         handlerMapping = new RequestMappingHandlerMapping();
+        handlerAdapters = new ArrayList<>();
+        handlerAdapters.add(new HttpRequestHandlerAdapter());
+        handlerAdapters.add(new AnnotationHandlerAdapter());
+    }
+
+    public HandlerAdapter getHandlerAdapter(Controller controller) {
+        if (this.handlerAdapters == null) return null;
+        for (HandlerAdapter ha: handlerAdapters) {
+            if (ha.supports(controller)) return ha;
+        }
+        return null;
     }
 
     @Override
@@ -31,6 +51,11 @@ public class DispatcherServlet extends FrameworkServlet {
     }
 
     private void doDispatch(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        HttpController controller = new HttpController();
+        HandlerAdapter handlerAdapter = getHandlerAdapter(controller);
+        handlerAdapter.handle(controller);
+        // Up code test use only
+
         String uri = req.getRequestURI();
         HandlerExecutionChain handler = getHandler(uri);
         if (handler == null) {
